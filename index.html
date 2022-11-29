@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <canvas id="myChart"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        async function doTraining(model){
+            const history = await model.fit(x, y, {
+                epochs: 300, 
+                callbacks:{
+                    onEpochEnd: async (epoch, logs) => {
+                        console.log("Эпоха: " + epoch + " Потери: " + logs.loss);
+                    }
+                }
+            })
+        }
+
+        const length = 20;
+        const xStart = -10;
+        const xArr = []; const yArr = [];
+        //y=a*x + b
+        const a = 2./3.; const b = 5;
+
+        const canvas = document.getElementById('myChart');
+        const data = {
+            datasets: [{
+                label: 'Scatter Dataset',
+                data: [],
+                backgroundColor: 'rgb(255, 99, 132)'
+            }],
+        };
+
+        for (let index = 0; index < length; index++) {
+            const rand = 2. * (tf.randomUniform([1]).dataSync() - 0.5);
+
+            xArr.push(xStart + index);
+            yArr.push(xArr[index] * a + b + rand);
+
+            data.datasets[0].data.push({x: xArr[index], y: yArr[index]})
+        }
+
+        const config = {
+            type: 'scatter',
+            data: data,
+            options: {
+                scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom'
+                }
+                }
+            }
+        };
+        new Chart(canvas, config);
+
+
+        const x = tf.tensor2d(xArr, [length, 1]); 
+        const y = tf.tensor2d(yArr, [length, 1]);
+
+        const model = tf.sequential();
+        model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+        model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+        model.summary();
+
+        doTraining(model).then(
+            () => {
+                alert(model.predict(tf.tensor2d([-30.0], [1,1])))
+                console.log(model.getWeights());
+            }
+        )
+    </script>
+</body>
+</html>
